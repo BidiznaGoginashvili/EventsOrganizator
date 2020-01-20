@@ -1,0 +1,115 @@
+﻿@model OA.CQRS.Query.Events.Read.ReadEventQuery
+
+<div class="event-filter-listing">
+    <div class="search-panel">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <div class="col-md-12">
+                        <input asp-for="Name" placeholder="Event's Name" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-12">
+                        <input asp-for="EndDate" placeholder="Event's EndDate" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-12">
+                        <input asp-for="StartDate" placeholder="Event's StartDate" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-md-12 m-5">
+                    <button type="button" id="search-event" class="btn btn-primary btn-search">
+                        <i class="fa fa-search"></i>
+                        Search
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="grid-panel">
+        @(Html.Kendo().Grid<OA.CQRS.Models.Events.EventModel>()
+         .Name("kendo-events")
+          .Columns(columns =>
+          {
+              columns.Bound(p => p.Name).Sortable(true).Filterable(true).Width(300);
+              columns.Bound(p => p.Description).Filterable(false).Width(300);
+              columns.Bound(p => p.CompanyName).Width(300);
+              columns.Bound(p => p.CategoryName).Width(300);
+              columns.Bound(p => p.EndDate).Width(300);
+              columns.Bound(p => p.StartDate).Width(300);
+              columns.Bound(p => p.Price).Width(300);
+          })
+          .Editable(editable => editable.Mode(GridEditMode.PopUp))
+          .Pageable()
+          .Scrollable(scr => scr.Height(800))
+          .Reorderable(reorderable => reorderable.Columns(true))
+          .DataSource(dataSource => dataSource
+            .Custom()
+            .PageSize(100)
+            .Schema(schema =>
+            {
+                schema.Data("Data");
+                schema.Total("Total");
+            })
+            .Type("json")
+            .Transport(transport =>
+            {
+                transport.Read(read =>
+                read.Action("EventsListing", "Events")
+                .DataType("json")
+                .Type(HttpVerbs.Post)
+              );
+                transport.Read(read =>
+                read.Action("Delete", "Events")
+                .DataType("json")
+                .Type(HttpVerbs.Post)
+              );
+            })
+          );
+        )
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#search-event').click(function () {
+            $.ajax({
+                cache: false,
+                type: "POST",
+                url: "@(Url.Action("EventsListing", "Events"))",
+                data: additionalData(),
+                complete: function (data) {
+
+                    var dataSource = new kendo.data.DataSource(
+                    {
+                        data: data.responseJSON.Data
+                    });
+
+                    var grid = $("#kendo-events").data("kendoGrid");
+                    dataSource.read();
+                    grid.setDataSource(dataSource);
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    alert(thrownError);
+                },
+                traditional: true
+            });
+        });
+    });
+
+    function additionalData()
+    {
+        var data = {
+            Name: $('#Name').val(),
+            EndDate: $('#EndDate').val(),
+            StartDate: $('#StartDate').val()
+        };
+
+        return data;
+    }
+</script>
+
